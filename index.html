@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monument Gallery</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monument Gallery</h1>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Search monuments...">
+            <button class="add-btn" onclick="openModal(false)">Add Monument</button>
+        </div>
+
+        <div class="gallery" id="gallery">
+            <!-- Monument cards will be added here dynamically -->
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing monuments -->
+    <div class="modal" id="monumentModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Add Monument</h2>
+            <form id="monumentForm">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="city">City:</label>
+                    <input type="text" id="city" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="image">Image URL:</label>
+                    <input type="url" id="image" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="add-btn">Save</button>
+                    <button type="button" class="delete-btn" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let monuments = [];
+        let editingIndex = -1;
+
+        // Load initial data
+        function loadInitialData() {
+            const savedMonuments = localStorage.getItem('monuments');
+            if (savedMonuments) {
+                monuments = JSON.parse(savedMonuments);
+            } else {
+                const initialMonuments = [
+                    {
+                        name: "Eiffel Tower",
+                        city: "Paris",
+                        description: "Iconic iron lattice tower on the Champ de Mars in Paris, France.",
+                        image: "https://images.unsplash.com/photo-1511739001486-6bfe10ce785f"
+                    },
+                    {
+                        name: "Statue of Liberty",
+                        city: "New York City",
+                        description: "Colossal neoclassical sculpture on Liberty Island in New York Harbor.",
+                        image: "https://images.unsplash.com/photo-1605130284535-11dd9eedc58a"
+                    },
+                    {
+                        name: "Taj Mahal",
+                        city: "Agra",
+                        description: "An ivory-white marble mausoleum on the right bank of the river Yamuna in Agra, India.",
+                        image: "https://images.unsplash.com/photo-1564507592333-c60657eea523"
+                    }
+                ];
+                monuments = initialMonuments;
+                localStorage.setItem('monuments', JSON.stringify(monuments));
+            }
+            renderGallery();
+        }
+
+        // Save monuments to localStorage
+        function saveMonuments() {
+            localStorage.setItem('monuments', JSON.stringify(monuments));
+        }
+
+        // Render gallery function
+        function renderGallery() {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            monuments.forEach((monument, index) => {
+                const card = document.createElement('div');
+                card.className = 'monument-card';
+                card.innerHTML = `
+                    <img src="${monument.image}" alt="${monument.name}" class="monument-image">
+                    <h3>${monument.name}</h3>
+                    <p><strong>City:</strong> ${monument.city}</p>
+                    <p>${monument.description}</p>
+                    <div class="monument-actions">
+                        <button class="edit-btn" onclick="editMonument(${index})">Edit</button>
+                        <button class="delete-btn" onclick="deleteMonument(${index})">Delete</button>
+                    </div>
+                `;
+                gallery.appendChild(card);
+            });
+        }
+
+        // Delete monument
+        function deleteMonument(index) {
+            if (confirm('Are you sure you want to delete this monument?')) {
+                monuments.splice(index, 1);
+                saveMonuments();
+                renderGallery();
+            }
+        }
+
+        // Form submission
+        document.getElementById('monumentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const monument = {
+                name: document.getElementById('name').value,
+                city: document.getElementById('city').value,
+                description: document.getElementById('description').value,
+                image: document.getElementById('image').value
+            };
+
+            if (editingIndex === -1) {
+                monuments.push(monument);
+            } else {
+                monuments[editingIndex] = monument;
+            }
+
+            saveMonuments();
+            renderGallery();
+            closeModal();
+        });
+
+        // Search functionality
+        document.querySelector('.search-input').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredMonuments = monuments.filter(monument =>
+                monument.name.toLowerCase().includes(searchTerm) ||
+                monument.city.toLowerCase().includes(searchTerm) ||
+                monument.description.toLowerCase().includes(searchTerm)
+            );
+
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            filteredMonuments.forEach((monument, index) => {
+                const card = document.createElement('div');
+                card.className = 'monument-card';
+                card.innerHTML = `
+                    <img src="${monument.image}" alt="${monument.name}" class="monument-image">
+                    <h3>${monument.name}</h3>
+                    <p><strong>City:</strong> ${monument.city}</p>
+                    <p>${monument.description}</p>
+                    <div class="monument-actions">
+                        <button class="edit-btn" onclick="editMonument(${monuments.indexOf(monument)})">Edit</button>
+                        <button class="delete-btn" onclick="deleteMonument(${monuments.indexOf(monument)})">Delete</button>
+                    </div>
+                `;
+                gallery.appendChild(card);
+            });
+        });
+
+        // Modal functions
+        function openModal(isEdit = false) {
+            document.getElementById('monumentModal').style.display = 'block';
+            if (!isEdit) {
+                document.getElementById('modalTitle').textContent = 'Add Monument';
+                document.getElementById('monumentForm').reset();
+                editingIndex = -1;
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('monumentModal').style.display = 'none';
+        }
+
+        function editMonument(index) {
+            editingIndex = index;
+            const monument = monuments[index];
+            document.getElementById('modalTitle').textContent = 'Edit Monument';
+            document.getElementById('name').value = monument.name;
+            document.getElementById('city').value = monument.city;
+            document.getElementById('description').value = monument.description;
+            document.getElementById('image').value = monument.image;
+            openModal(true);
+        }
+
+        // Initialize the gallery
+        loadInitialData();
+    </script>
+</body>
+</html>
